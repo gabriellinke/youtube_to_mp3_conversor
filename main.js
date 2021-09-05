@@ -7,70 +7,105 @@ const readline = require("readline");
 
 async function getTitle(url)
 {
-    var info = await ytdl.getInfo(url);
+    let info = await ytdl.getInfo(url);
     return info.videoDetails.title;
+}
+
+async function getTitleWithTimeOut(url)
+{
+    let ret = new Promise(async(resolve,reject)=>{
+        setTimeout(() => {
+              if (!ret.isResolved){
+                  reject(new Error('getTitle function timed out!'));
+                  return;
+              }
+          }, 5000);
+  
+        const response = await getTitle(url);
+        resolve(response);
+      });
+    return ret;
 }
 
 function download(url)
 {
     const stream = ytdl(url)
     let proc = new ffmpeg({source:stream});
-    console.log('Downloading...')
-
     getTitle(url)
     .then(res => {
-        console.log(res);
+        console.log('Downloading ', res, ' ...');
         proc.setFfmpegPath('/usr/bin/ffmpeg');
         proc.withAudioCodec('libmp3lame')
                 .toFormat('mp3')
                 .output(baseDirectory + res + '.mp3')
                 .on('error', function(err) {
                     console.log('An error occurred: ' + err.message);
+                    currentlyDownloading--;
                 })
                 .on('end', function() {
-                    console.log('Processing finished !');
+                    console.log('Processing finished! Downloaded ',res,' from ', url);
+                    currentlyDownloading--;
                 })
                 .run()
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+        console.log(err);
+        console.log('Couldn`t download audio from ', url);
+        currentlyDownloading--;
+    });
 }
 
 async function getPlaylistVideos(url)
 {
     const intermediateUrl = url.split('list=');
     const requestUrl = intermediateUrl[1].split('&')[0];
-    ytfps(requestUrl).then(playlist => {
-        let videos = playlist.videos;
-        videos = videos.map(video => video.url);
-        console.log(videos);
-        return videos
-    }).catch(err => {
-        throw err;
-    });
+    const playlist = await ytfps(requestUrl);
+    let videos = playlist.videos;
+    return videos.map(video => video.url);
 }
 
-const baseDirectory = './Downloads/';
-const playlistUrl = 'https://www.youtube.com/playlist?list=FLMDnT9-ZItXB2gF--WbhhlA';
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-rl.question("Deseja realizar a conversão de um vídeo ou de uma playlist?\n1: Vídeo\n2: Playlist\n\n", function (answer) {
-    if(answer == 1) {
-        console.log(`\nVocê escolheu vídeo. Qual o link do vídeo?\n`);
-        rl.question("URL: ", function (answer) {
-            download(answer);
-            rl.close();
-        });
+async function downloadAllPlaylistVideos(playlistUrl)
+{
+    videosQueue = await getPlaylistVideos(playlistUrl);
+    console.log('Starting to download ', videosQueue.length, ' videos from playlist');
+    while(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS)
+    {
+        currentlyDownloading++;
+        download(videosQueue.shift());
     }
-    else if(answer == 2)
-        console.log(`Você escolheu playlist`);
-    else
-        console.log(`Entrada inválida`);
-  });
+    let updateDownloadsQueue = setInterval(function() {
+        if(videosQueue.length === 0) clearInterval(updateDownloadsQueue);
+        if(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS && videosQueue.length > 0)
+        {
+            currentlyDownloading++;
+            download(videosQueue.shift());
+        }
+    }, 2000);
+}
 
-// getPlaylistVideos('https://www.youtube.com/playlist?list=FLMDnT9-ZItXB2gF--WbhhlA');
-// getPlaylistVideos('https://www.youtube.com/watch?v=PEbJ4qLiMu0&list=PL71B8152559FA2805&index=4&ab_channel=UKFDubstep');
-// download('https://www.youtube.com/watch?v=3r26y--evIw&list=PL71B8152559FA2805&index=6&ab_channel=UKFDubstep');
+const baseDirectory = './Downloads/teste/';
+const MAX_SIMULTANEOUS_DOWNLOADS = 4;
+let videosQueue = [];
+let currentlyDownloading = 0;
+const playlistUrl = 'https://www.youtube.com/watch?v=IUGzY-ihqWc&list=PL_GIjsCumTTmuL_r4m6Cb6Y6hPmfMiNlf&ab_channel=UKFDubstep';
+
+downloadAllPlaylistVideos(playlistUrl);
+
+// const rl = readline.createInterface({
+//   input: process.stdin,
+//   output: process.stdout,
+// });
+
+// rl.question("Deseja realizar a conversão de um vídeo ou de uma playlist?\n1: Vídeo\n2: Playlist\n\n", function (answer) {
+//     if(answer == 1) {
+//         console.log(`\nVocê escolheu vídeo. Qual o link do vídeo?\n`);
+//         rl.question("URL: ", function (answer) {
+//             download(answer);
+//             rl.close();
+//         });
+//     }
+//     else if(answer == 2)
+//         console.log(`Você escolheu playlist`);
+//     else
+//         console.log(`Entrada inválida`);
+//   });
