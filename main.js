@@ -33,24 +33,24 @@ function download(url)
     let proc = new ffmpeg({source:stream});
     getTitle(url)
     .then(res => {
-        console.log('Downloading ', res, ' ...');
+        console.log(`Downloading ${res}...\n`);
         proc.setFfmpegPath('/usr/bin/ffmpeg');
         proc.withAudioCodec('libmp3lame')
                 .toFormat('mp3')
                 .output(baseDirectory + res + '.mp3')
                 .on('error', function(err) {
-                    console.log('An error occurred: ' + err.message);
+                    console.log(`An error occurred: ${err.message}\n`);
                     currentlyDownloading--;
                 })
                 .on('end', function() {
-                    console.log('Processing finished! Downloaded ',res,' from ', url);
+                    console.log(`Processing finished! Downloaded ${res} from ${url}\n`);
                     currentlyDownloading--;
                 })
                 .run()
     })
     .catch(err => {
-        console.log(err);
-        console.log('Couldn`t download audio from ', url);
+        console.log(`\n${err}\n`);
+        console.log(`Couldn't download audio from ${url}\n`);
         currentlyDownloading--;
     });
 }
@@ -67,7 +67,7 @@ async function getPlaylistVideos(url)
 async function downloadAllPlaylistVideos(playlistUrl)
 {
     videosQueue = await getPlaylistVideos(playlistUrl);
-    console.log('Starting to download ', videosQueue.length, ' videos from playlist');
+    console.log(`\nStarting to download ${videosQueue.length} videos from playlist: ${playlistUrl}\n`);
     while(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS)
     {
         currentlyDownloading++;
@@ -90,6 +90,16 @@ let currentlyDownloading = 0;
 const playlistUrl = 'https://www.youtube.com/watch?v=IUGzY-ihqWc&list=PL_GIjsCumTTmuL_r4m6Cb6Y6hPmfMiNlf&ab_channel=UKFDubstep';
 
 downloadAllPlaylistVideos(playlistUrl);
+
+(function(){
+    var originalLog = console.log;
+
+    console.log = function(str){
+        originalLog(str);
+        fs.appendFileSync(baseDirectory+'log-file.txt', str, "UTF-8",{'flags': 'a'});
+    }
+})();
+
 
 // const rl = readline.createInterface({
 //   input: process.stdin,
