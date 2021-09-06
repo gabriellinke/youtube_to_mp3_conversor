@@ -33,24 +33,24 @@ function download(url)
     let proc = new ffmpeg({source:stream});
     getTitle(url)
     .then(res => {
-        console.log(`Downloading ${res}...\n`);
+        log(`Downloading ${res}...\n`);
         proc.setFfmpegPath('/usr/bin/ffmpeg');
         proc.withAudioCodec('libmp3lame')
                 .toFormat('mp3')
                 .output(baseDirectory + res + '.mp3')
                 .on('error', function(err) {
-                    console.log(`An error occurred: ${err.message}\n`);
+                    log(`An error occurred: ${err.message}\n`);
                     currentlyDownloading--;
                 })
                 .on('end', function() {
-                    console.log(`Processing finished! Downloaded ${res} from ${url}\n`);
+                    log(`Processing finished! Downloaded ${res} from ${url}\n`);
                     currentlyDownloading--;
                 })
                 .run()
     })
     .catch(err => {
-        console.log(`\n${err}\n`);
-        console.log(`Couldn't download audio from ${url}\n`);
+        log(`\n${err}\n\n`);
+        log(`Couldn't download audio from ${url}\n`);
         currentlyDownloading--;
     });
 }
@@ -67,7 +67,7 @@ async function getPlaylistVideos(url)
 async function downloadAllPlaylistVideos(playlistUrl)
 {
     videosQueue = await getPlaylistVideos(playlistUrl);
-    console.log(`\nStarting to download ${videosQueue.length} videos from playlist: ${playlistUrl}\n`);
+    log(`\nStarting to download ${videosQueue.length} videos from playlist: ${playlistUrl}\n`);
     while(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS)
     {
         currentlyDownloading++;
@@ -91,15 +91,11 @@ const playlistUrl = 'https://www.youtube.com/watch?v=IUGzY-ihqWc&list=PL_GIjsCum
 
 downloadAllPlaylistVideos(playlistUrl);
 
-(function(){
-    var originalLog = console.log;
-
-    console.log = function(str){
-        originalLog(str);
-        fs.appendFileSync(baseDirectory+'log-file.txt', str, "UTF-8",{'flags': 'a'});
-    }
-})();
-
+function log(str)
+{
+    console.log(str);
+    fs.appendFileSync(baseDirectory+'log-file.txt', str, "UTF-8",{'flags': 'a'});
+}
 
 // const rl = readline.createInterface({
 //   input: process.stdin,
