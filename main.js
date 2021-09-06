@@ -2,33 +2,18 @@ const fs = require('fs');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const ytfps = require('ytfps');
- 
 const readline = require("readline");
+ 
 const MAX_SIMULTANEOUS_DOWNLOADS = 4;
+let baseDirectory = '../../Gabriel/Músicas/';
+
 let videosQueue = [];
 let currentlyDownloading = 0;
-let baseDirectory = './Downloads/';
 
 async function getTitle(url)
 {
     let info = await ytdl.getInfo(url);
     return info.videoDetails.title;
-}
-
-async function getTitleWithTimeOut(url)
-{
-    let ret = new Promise(async(resolve,reject)=>{
-        setTimeout(() => {
-              if (!ret.isResolved){
-                  reject(new Error('getTitle function timed out!'));
-                  return;
-              }
-          }, 5000);
-  
-        const response = await getTitle(url);
-        resolve(response);
-      });
-    return ret;
 }
 
 function download(url)
@@ -73,19 +58,14 @@ async function downloadAllPlaylistVideos(playlistUrl)
 {
     videosQueue = await getPlaylistVideos(playlistUrl);
     log(`\nStarting to download ${videosQueue.length} videos from playlist: ${playlistUrl}\n`);
-    while(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS)
-    {
-        currentlyDownloading++;
-        download(videosQueue.shift());
-    }
     let updateDownloadsQueue = setInterval(function() {
         if(videosQueue.length === 0) clearInterval(updateDownloadsQueue);
-        if(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS && videosQueue.length > 0)
+        while(currentlyDownloading < MAX_SIMULTANEOUS_DOWNLOADS && videosQueue.length > 0)
         {
             currentlyDownloading++;
             download(videosQueue.shift());
         }
-    }, 2000);
+    }, 500);
 }
 
 function log(str)
