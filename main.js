@@ -38,10 +38,11 @@ function download(url)
     getTitle(url)
     .then(res => {
         log(`Downloading ${res}...\n`);
+        const validFilename = res.replace(/[/\\?%*:|"<>]/g, '');
         proc.setFfmpegPath('/usr/bin/ffmpeg');
         proc.withAudioCodec('libmp3lame')
                 .toFormat('mp3')
-                .output(baseDirectory + res + '.mp3')
+                .output(baseDirectory + validFilename + '.mp3')
                 .on('error', function(err) {
                     log(`An error occurred: ${err.message}\n`);
                     currentlyDownloading--;
@@ -104,7 +105,6 @@ rl.question("Qual a pasta de destino dos arquivos?\n", function (answer) {
         baseDirectory = baseDirectory + answer + '/';
         if (!fs.existsSync(baseDirectory)) fs.mkdirSync(baseDirectory, { recursive: true });
     }
-    console.log(baseDirectory);
     rl.question("Deseja realizar a conversão de um vídeo ou de uma playlist?\n1: Vídeo\n2: Playlist\n\n", function (answer) {
         if(answer == 1) {
             console.log(`\nVocê escolheu vídeo. Qual o link do vídeo?\n`);
