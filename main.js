@@ -4,6 +4,10 @@ const ffmpeg = require('fluent-ffmpeg');
 const ytfps = require('ytfps');
  
 const readline = require("readline");
+const MAX_SIMULTANEOUS_DOWNLOADS = 4;
+let videosQueue = [];
+let currentlyDownloading = 0;
+let baseDirectory = './Downloads/';
 
 async function getTitle(url)
 {
@@ -83,35 +87,42 @@ async function downloadAllPlaylistVideos(playlistUrl)
     }, 2000);
 }
 
-const baseDirectory = './Downloads/teste/';
-const MAX_SIMULTANEOUS_DOWNLOADS = 4;
-let videosQueue = [];
-let currentlyDownloading = 0;
-const playlistUrl = 'https://www.youtube.com/watch?v=IUGzY-ihqWc&list=PL_GIjsCumTTmuL_r4m6Cb6Y6hPmfMiNlf&ab_channel=UKFDubstep';
-
-downloadAllPlaylistVideos(playlistUrl);
-
 function log(str)
 {
     console.log(str);
     fs.appendFileSync(baseDirectory+'log-file.txt', str, "UTF-8",{'flags': 'a'});
 }
 
-// const rl = readline.createInterface({
-//   input: process.stdin,
-//   output: process.stdout,
-// });
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
-// rl.question("Deseja realizar a conversão de um vídeo ou de uma playlist?\n1: Vídeo\n2: Playlist\n\n", function (answer) {
-//     if(answer == 1) {
-//         console.log(`\nVocê escolheu vídeo. Qual o link do vídeo?\n`);
-//         rl.question("URL: ", function (answer) {
-//             download(answer);
-//             rl.close();
-//         });
-//     }
-//     else if(answer == 2)
-//         console.log(`Você escolheu playlist`);
-//     else
-//         console.log(`Entrada inválida`);
-//   });
+rl.question("Qual a pasta de destino dos arquivos?\n", function (answer) {
+    if(answer != '')
+    {
+        baseDirectory = baseDirectory + answer + '/';
+        if (!fs.existsSync(baseDirectory)) fs.mkdirSync(baseDirectory, { recursive: true });
+    }
+    console.log(baseDirectory);
+    rl.question("Deseja realizar a conversão de um vídeo ou de uma playlist?\n1: Vídeo\n2: Playlist\n\n", function (answer) {
+        if(answer == 1) {
+            console.log(`\nVocê escolheu vídeo. Qual o link do vídeo?\n`);
+            rl.question("URL: ", function (answer) {
+                download(answer);
+                rl.close();
+            });
+        }
+        else if(answer == 2) {
+            console.log(`Você escolheu playlist. Qual o link da playlist?\n`);
+            rl.question("URL: ", function (answer) {
+                downloadAllPlaylistVideos(answer);
+                rl.close();
+            });
+        }
+        else {
+            console.log(`Entrada inválida`);
+            rl.close();
+        }
+    });
+})
