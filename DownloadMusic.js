@@ -2,6 +2,7 @@ const fs = require('fs');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const ytfps = require('ytfps');
+const ffmpegPath = '/usr/bin/ffmpeg';
 
 class DownloadMusic {   
     constructor(baseDirectory, maxDownloads) {
@@ -37,7 +38,7 @@ class DownloadMusic {
         .then(res => {
             $this.log(`Downloading ${res}...\n`);
             const validFilename = res.replace(/[/\\?%*:|"<>]/g, '');
-            proc.setFfmpegPath('/usr/bin/ffmpeg');
+            proc.setFfmpegPath(ffmpegPath);
             proc.withAudioCodec('libmp3lame')
                     .toFormat('mp3')
                     .output($this.baseDirectory + validFilename + '.mp3')
